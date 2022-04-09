@@ -2,8 +2,9 @@ from tensorflow.keras import Model, layers
 import params as yamnet_params
 
 class Yamnet_short():
-  def __init__(self):
+  def __init__(self,num_classes):
     self.params = yamnet_params.Params(sample_rate=16000, patch_hop_seconds=0.5)
+    self.num_classes = num_classes
 
   def _batch_norm(self, name, params):
     def _bn_layer(layer_input):
@@ -67,11 +68,21 @@ class Yamnet_short():
         (self._separable_conv, [3, 3], 2,  256),
         (self._separable_conv, [3, 3], 1,  256),
         (self._separable_conv, [3, 3], 2,  512),
-    ]
+
+        (self._separable_conv, [3, 3], 1,  512),
+        (self._separable_conv, [3, 3], 1,  512),
+        (self._separable_conv, [3, 3], 1,  512),
+        (self._separable_conv, [3, 3], 1,  512),
+        (self._separable_conv, [3, 3], 1,  512),
+        (self._separable_conv, [3, 3], 2, 1024),
+        (self._separable_conv, [3, 3], 1, 1024)
+        ]
     for (i, (layer_fun, kernel, stride, filters)) in enumerate(_YAMNET_LAYER_DEFS):
       net = layer_fun('layer{}'.format(i + 1), kernel, stride, filters, self.params)(net)
     embeddings = layers.GlobalAveragePooling2D()(net)
-    predictions = layers.Dense(10)(embeddings)
+    embeddings = layers.Dense(128)(embeddings)
+    embeddings = layers.Dense(128)(embeddings)
+    predictions = layers.Dense(self.num_classes)(embeddings)
     frames_model = Model(
         name='yamnet_frames', inputs=features,
         outputs=predictions
